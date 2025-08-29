@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: app-multi-env
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - env: dev
+            namespace: dev
+            valuesFile: values-dev.yaml
+          - env: prd
+            namespace: prd
+            valuesFile: values-prd.yaml
+  template:
+    metadata:
+      name: app-{{ env }}
+      labels:
+        app: flask-app
+        environment: '{{ env }}'
+    spec:
+      project: default
+      source:
+        repoURL: 'https://github.com/rsmartins78/gitops-argocd-lab.git'
+        targetRevision: main
+        path: infra/chart
+        helm:
+          valueFiles:
+            - '{{ valuesFile }}'
+      destination:
+        server: 'https://kubernetes.default.svc'
+        namespace: '{{ namespace }}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

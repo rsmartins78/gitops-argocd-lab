@@ -1,0 +1,13 @@
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+secret:
+  greeting: "Hello from Leiden! <dev env>"
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
