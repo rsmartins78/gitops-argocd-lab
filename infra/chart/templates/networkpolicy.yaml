@@ -1,0 +1,39 @@
+# Network policy to allow ingress and monitoring tool traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "app-chart.fullname" . }}-allow-ingress
+  namespace: {{ .Release.Namespace | default "default" }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ include "app-chart.name" . }}
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    {{- if .Values.ingress.enabled }}
+    # Allow ingress from Ingress controller namespace
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+    {{- end}}
+    # Allow ingress from Monitoring tools namespace
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: monitoring-tool
+    ports:
+    - protocol: TCP
+      port: 8000
+---
+# Network policy to deny all traffic by default
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "app-chart.fullname" . }}-deny-all
+  namespace: {{ .Release.Namespace | default "default" }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress

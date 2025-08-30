@@ -1,0 +1,35 @@
+replicaCount: 1
+image:
+  repository: ghcr.io/rsmartins78/gitops-argocd-lab
+  tag: latest
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 8000
+ingress:
+  enabled: false
+  host: null
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+env:
+  failRate: 0.02
+  readinessDelaySec: 10
+secret:
+  greeting: "Hello from Leiden!"
+hpa:
+  enabled: false
+  minReplicas: 0
+  maxReplicas: 0
+resourceQuota:
+  enabled: false
+  requestsCpu: "1"
+  requestsMemory: 2Gi
+  limitsCpu: "2"
+  limitsMemory: 4Gi
+nodeSelector:
+  minikube.k8s.io/primary: "false"

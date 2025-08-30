@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "app-chart.fullname" . }}
+  namespace: {{ .Release.Namespace | default "default" }}
+  labels:
+    app: {{ include "app-chart.name" . }}
+spec:
+{{- if not .Values.hpa.enabled }}
+  replicas: {{ .Values.replicaCount }}
+{{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  selector:
+    matchLabels:
+      app: {{ include "app-chart.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "app-chart.name" . }}
+    spec:
+      {{- if .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      {{- end }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - {{ include "app-chart.name" . }}
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8000
+          env:
+            - name: FAIL_RATE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "app-chart.fullname" . }}-config
+                  key: FAIL_RATE
+            - name: READINESS_DELAY_SEC
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "app-chart.fullname" . }}-config
+                  key: READINESS_DELAY_SEC
+            - name: GREETING
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "app-chart.fullname" . }}-secret
+                  key: greeting
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            runAsUser: 10001
